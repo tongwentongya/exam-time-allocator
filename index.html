@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>期末复习时间分配优化系统 | DP 全局最优 vs A+ 贪心</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: rgba(255, 255, 255, 0.92);
+      --text: #172033;
+      --muted: #667085;
+      --blue: #2563eb;
+      --cyan: #06b6d4;
+      --green: #16a34a;
+      --orange: #f97316;
+      --purple: #7c3aed;
+      --line: #e5e7eb;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(37, 99, 235, 0.16), transparent 28%),
+        radial-gradient(circle at 92% 10%, rgba(6, 182, 212, 0.18), transparent 26%),
+        linear-gradient(180deg, #eef4ff 0%, var(--bg) 42%, #ffffff 100%);
+      color: var(--text);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      padding: 16px 6vw;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(18px);
+      background: rgba(248, 250, 252, 0.76);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .nav-links a:hover {
+      color: var(--blue);
+    }
+
+    .hero {
+      position: relative;
+      padding: 82px 6vw 56px;
+      overflow: hidden;
+    }
+
+    .hero-grid {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+      gap: 44px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      border-radius: 999px;
+      color: var(--blue);
+      background: rgba(37, 99, 235, 0.08);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 20px 0 18px;
+      font-size: clamp(38px, 5vw, 68px);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 640px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.9;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 30px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 20px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      font-family: inherit;
+      font-size: 15px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      box-shadow: 0 15px 30px rgba(37, 99, 235, 0.22);
+    }
+
+    .btn-soft {
+      color: var(--blue);
+      background: #fff;
+      border: 1px solid rgba(37, 99, 235, 0.16);
+    }
+
+    .hero-card {
+      position: relative;
+      padding: 24px;
+      border-radius: 30px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.78));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .mini-window {
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .window-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line);
+      font-weight: 800;
+    }
+
+    .dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+
+    .dots span:nth-child(2) {
+      background: #f59e0b;
+    }
+
+    .dots span:nth-child(3) {
+      background: #22c55e;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .metric {
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #f8fbff, #eef6ff);
+      border: 1px solid #dbeafe;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric .value {
+      margin-top: 6px;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--blue);
+    }
+
+    .hero-bars {
+      padding: 0 16px 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-line {
+      display: grid;
+      grid-template-columns: 92px 1fr 54px;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #eef2f7;
+      overflow: hidden;
+    }
+
+    .bar > i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+    }
+
+    section {
+      padding: 58px 6vw;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: clamp(28px, 3.2vw, 42px);
+      letter-spacing: -0.03em;
+    }
+
+    .section-title p {
+      margin: 8px 0 0;
+      max-width: 560px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .pill {
+      flex: none;
+      padding: 9px 13px;
+      border-radius: 999px;
+      background: #eef6ff;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      padding: 22px;
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .icon {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      margin-bottom: 14px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      font-weight: 900;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 14px;
+    }
+
+    .model-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .formula {
+      padding: 24px;
+      border-radius: var(--radius);
+      background: #0f172a;
+      color: #e2e8f0;
+      box-shadow: var(--shadow);
+    }
+
+    .formula h3 {
+      margin: 0 0 12px;
+      color: #fff;
+    }
+
+    .formula code {
+      display: block;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #93c5fd;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .steps {
+      display: grid;
+      gap: 14px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .step-num {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      font-weight: 900;
+    }
+
+    .step h3 {
+      margin: 0 0 5px;
+      font-size: 17px;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .calculator {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 22px;
+      border-radius: var(--radius);
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+    }
+
+    .panel h3 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid #d8dee9;
+      border-radius: 12px;
+      padding: 10px 11px;
+      outline: none;
+      font: inherit;
+      color: var(--text);
+      background: #fbfdff;
+    }
+
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .button-stack {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    th,
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid #eef2f7;
+      text-align: left;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    td input {
+      min-width: 76px;
+      padding: 8px 9px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
+    td:first-child input {
+      min-width: 146px;
+    }
+
+    .del {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 10px;
+      color: #ef4444;
+      background: #fff1f2;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .results {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .result-card {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .result-card strong {
+      display: block;
+      font-size: 32px;
+      margin-top: 6px;
+    }
+
+    .blue {
+      color: var(--blue);
+    }
+
+    .green {
+      color: var(--green);
+    }
+
+    .orange {
+      color: var(--orange);
+    }
+
+    .compare-table th:nth-child(6),
+    .compare-table th:nth-child(7),
+    .compare-table th:nth-child(8) {
+      color: var(--blue);
+      background: #eff6ff;
+    }
+
+    .compare-table th:nth-child(9),
+    .compare-table th:nth-child(10),
+    .compare-table th:nth-child(11) {
+      color: var(--green);
+      background: #f0fdf4;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef6ff;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .insight {
+      min-height: 190px;
+      padding: 22px;
+      border-radius: var(--radius);
+      color: #fff;
+      overflow: hidden;
+      position: relative;
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      box-shadow: var(--shadow);
+    }
+
+    .insight:nth-child(2) {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+    }
+
+    .insight:nth-child(3) {
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+    }
+
+    .insight h3 {
+      margin: 0 0 10px;
+      font-size: 21px;
+    }
+
+    .insight p {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .insight::after {
+      content: "";
+      position: absolute;
+      width: 130px;
+      height: 130px;
+      right: -34px;
+      bottom: -48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    footer {
+      padding: 34px 6vw;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .model-grid,
+      .calculator {
+        grid-template-columns: 1fr;
+      }
+
+      .cards,
+      .insight-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 680px) {
+      .nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+      }
+
+      .cards,
+      .insight-grid,
+      .results,
+      .metric-row {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="#top" aria-label="返回顶部">
+      <span class="brand-mark">DP</span>
+      <span>复习时间分配优化系统</span>
+    </a>
+    <div class="nav-links">
+      <a href="#background">背景意义</a>
+      <a href="#model">算法设计</a>
+      <a href="#calculator">在线计算</a>
+      <a href="#compare">算法比较</a>
+    </div>
+  </nav>
+
+  <header id="top" class="hero">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">算法设计与分析期末设计 · 深大学生复习决策工具</span>
+        <h1>用动态规划，让复习时间分配更聪明</h1>
+        <p>
+          面向期末多课程复习场景，将课程学分、难度、内容量与掌握程度转化为可计算参数，
+          在总时间约束下求解加权绩点最大化方案，并与 A+ 优先贪心策略进行对比。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#calculator">立即体验绩点计算</a>
+          <a class="btn btn-soft" href="#model">查看算法思路</a>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <div class="mini-window">
+          <div class="window-head">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span>DP 全局最优 vs 贪心策略</span>
+          </div>
+          <div class="metric-row">
+            <div class="metric">
+              <div class="label">总复习时长</div>
+              <div class="value">80h</div>
+            </div>
+            <div class="metric">
+              <div class="label">DP 平均绩点</div>
+              <div class="value">3.82</div>
+            </div>
+            <div class="metric">
+              <div class="label">绩点提升</div>
+              <div class="value">+0.74</div>
+            </div>
+          </div>
+          <div class="hero-bars">
+            <div class="bar-line"><span>电磁场</span><div class="bar"><i style="width: 72%"></i></div><b>21h</b></div>
+            <div class="bar-line"><span>数字图像</span><div class="bar"><i style="width: 48%"></i></div><b>14h</b></div>
+            <div class="bar-line"><span>微机技术</span><div class="bar"><i style="width: 76%"></i></div><b>22h</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="background">
+    <div class="container">
+      <div class="section-title">
+        <div>
+          <span class="pill">01 选题背景与意义</span>
+          <h2>期末复习不是平均用力，而是有限资源的优化配置</h2>
+          <p>本项目来自真实学习场景：复习周期短、课程差异大、学生基础不同，需要更科学的决策依据。</p>
+        </div>
+      </div>
+
+      <div class="cards">
+        <article class="card">
+          <div class="icon">T</div>
+          <h3>时间资源有限</h3>
+          <p>期末复习通常只有 1-2 周，需要在有限时间内攻克多门课程。</p>
+        </article>
+        <article class="card">
+          <div class="icon">C</div>
+          <h3>课程差异明显</h3>
+          <p>不同课程在学分、难度、内容量上差异明显，不能简单平均分配。</p>
+        </article>
+        <article class="card">
+          <div class="icon">?</div>
+          <h3>决策容易盲目</h3>
+          <p>凭感觉复习可能导致核心课程投入不足，造成时间浪费。</p>
+        </article>
+        <article class="card">
+          <div class="icon">G</div>
+          <h3>目标是 GPA 最优</h3>
+          <p>系统关注整体加权平均绩点，而不只是保证单门课程不挂科。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="model">
+    <div class="container">
+      <div class="section-title">
+        <div>
+          <span class="pill">02 问题定义与算法设计</span>
+          <h2>从输入课程信息，到输出最优复习方案</h2>
+          <p>系统将每门课程作为一个决策阶段，使用边际收益递减模型估计成绩，再通过动态规划求全局最优。</p>
+        </div>
+      </div>
+
+      <div class="model-grid">
+        <div class="formula">
+          <h3>问题建模</h3>
+          <p>输入课程数量、总复习时长、学习能力，以及每门课的学分、难度、内容量、掌握程度。</p>
+          <code>目标：max Σ creditᵢ × GPA(scoreᵢ(hᵢ))
+约束：Σ hᵢ = T
+输出：每门课程复习时长 hᵢ</code>
+        </div>
+        <div class="formula">
+          <h3>边际收益递减模型</h3>
+          <p>初期复习提分快，随着掌握程度提高，同样时间的提分幅度会逐渐收窄。</p>
+          <code>initial = mastery × 10
+k = learningAbility / (difficulty × content)
+score = initial + (100 - initial) × (1 - e^(-k × hours))</code>
+        </div>
+      </div>
+
+      <div style="height: 18px"></div>
+
+      <div class="model-grid">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div>
+              <h3>动态规划 DP</h3>
+              <p>定义 dp[i][j] 为前 i 门课投入 j 小时的最大加权绩点，枚举第 i 门课分配时间 k。</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div>
+              <h3>状态转移</h3>
+              <p>dp[i][j] = max{ dp[i-1][j-k] + cᵢ × g(scoreᵢ(k)) }，并记录 path 用于回溯方案。</p>
+            </div>
+          </div>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">A</div>
+            <div>
+              <h3>A+ 优先贪心</h3>
+              <p>先尽量让所有课程达到 60 分，再把剩余时间投给最容易提升到 A+ 的课程。</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">B</div>
+            <div>
+              <h3>算法取舍</h3>
+              <p>DP 保证全局最优，适合小规模高质量决策；贪心速度快，但不保证最优。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="calculator">
+    <div class="container">
+      <div class="section-title">
+        <div>
+          <span class="pill">03 在线绩点计算程序</span>
+          <h2>直接在网页中运行我们的算法</h2>
+          <p>下方程序已根据 Python 代码重写为 JavaScript，可直接计算 DP 最优方案和 A+ 贪心方案。</p>
+        </div>
+      </div>
+
+      <div class="calculator">
+        <aside class="panel">
+          <h3>基础信息</h3>
+          <div class="form-grid">
+            <label>复习天数
+              <input id="days" type="number" min="1" max="60" value="20">
+            </label>
+            <label>每日小时
+              <input id="hoursPerDay" type="number" min="1" max="16" value="4">
+            </label>
+            <label>学习能力
+              <input id="ability" type="number" min="0.1" max="3" step="0.1" value="1.5">
+            </label>
+            <label>总时长
+              <input id="totalHours" type="number" readonly value="80">
+            </label>
+          </div>
+          <div class="button-stack">
+            <button class="btn btn-primary" id="runBtn">运行算法并比较</button>
+            <button class="btn btn-soft" id="addBtn">添加课程</button>
+            <button class="btn btn-soft" id="resetBtn">恢复示例数据</button>
+          </div>
+        </aside>
+
+        <div class="panel">
+          <h3>课程输入</h3>
+          <div class="table-wrap">
+            <table id="courseTable">
+              <thead>
+                <tr>
+                  <th>课程名称</th>
+                  <th>学分</th>
+                  <th>难度</th>
+                  <th>内容量</th>
+                  <th>掌握度</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="result-card">
+          <span>DP 平均绩点</span>
+          <strong class="blue" id="dpAvg">-</strong>
+        </div>
+        <div class="result-card">
+          <span>贪心平均绩点</span>
+          <strong class="green" id="greedyAvg">-</strong>
+        </div>
+        <div class="result-card">
+          <span>DP 优势差距</span>
+          <strong class="orange" id="gap">-</strong>
+        </div>
+      </div>
+
+      <div style="height: 18px"></div>
+
+      <div class="panel">
+        <h3>计算结果对比</h3>
+        <div class="table-wrap">
+          <table class="compare-table" id="resultTable">
+            <thead>
+              <tr>
+                <th>课程名称</th>
+                <th>学分</th>
+                <th>难度</th>
+                <th>内容量</th>
+                <th>掌握度</th>
+                <th>DP时长</th>
+                <th>DP分数</th>
+                <th>DP绩点</th>
+                <th>贪心时长</th>
+                <th>贪心分数</th>
+                <th>贪心绩点</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="11">点击“运行算法并比较”查看结果。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <div class="container">
+      <div class="section-title">
+        <div>
+          <span class="pill">04 算法分析与比较</span>
+          <h2>DP 追求全局最优，贪心追求快速近似</h2>
+          <p>结合 PPT 中的算法分析，动态规划更适合课程数量较少、追求最优绩点的期末复习场景。</p>
+        </div>
+      </div>
+
+      <div class="insight-grid">
+        <article class="insight">
+          <h3>动态规划 DP</h3>
+          <p>最优子结构与无后效性成立，可以保证全局最优。时间复杂度 O(nT²)，空间复杂度 O(nT)。</p>
+        </article>
+        <article class="insight">
+          <h3>A+ 优先贪心</h3>
+          <p>先保底，再冲 A+，时间复杂度约 O(nT)，效率高，但局部选择不一定带来整体最优。</p>
+        </article>
+        <article class="insight">
+          <h3>最终结论</h3>
+          <p>在本项目的课程规模下，DP 的运行时间对用户无感知，却能获得更高平均绩点，因此更适合作为最终方案。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    基于动态规划算法的深大学生期末复习时间分配系统 · 算法设计与分析期末设计展示
+  </footer>
+
+  <script>
+    const MAX_COURSES = 10;
+    const MAX_HOURS = 200;
+    const BASE_LEARNING_RATE = 2.0;
+
+    const defaultCourses = [
+      { name: "电磁场与电磁波", credit: 3.0, difficulty: 10.0, content: 9.0, mastery: 5.0 },
+      { name: "数字图像处理", credit: 2.0, difficulty: 6.0, content: 7.0, mastery: 6.0 },
+      { name: "信号与系统", credit: 3.5, difficulty: 9.0, content: 7.5, mastery: 7.5 },
+      { name: "通信电子线路", credit: 3.5, difficulty: 9.0, content: 7.0, mastery: 7.0 },
+      { name: "微型计算机技术", credit: 3.5, difficulty: 7.5, content: 7.0, mastery: 5.0 },
+      { name: "人工智能", credit: 3.0, difficulty: 2.5, content: 4.0, mastery: 9.0 }
+    ];
+
+    let courses = structuredClone(defaultCourses);
+
+    const tbody = document.querySelector("#courseTable tbody");
+    const resultBody = document.querySelector("#resultTable tbody");
+    const daysInput = document.querySelector("#days");
+    const hpdInput = document.querySelector("#hoursPerDay");
+    const abilityInput = document.querySelector("#ability");
+    const totalHoursInput = document.querySelector("#totalHours");
+
+    function clampNumber(value, fallback = 0) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : fallback;
+    }
+
+    function updateTotalHours() {
+      const total = clampNumber(daysInput.value) * clampNumber(hpdInput.value);
+      totalHoursInput.value = total;
+      return total;
+    }
+
+    function renderCourses() {
+      tbody.innerHTML = "";
+      courses.forEach((course, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input data-key="name" data-index="${index}" value="${course.name}"></td>
+          <td><input data-key="credit" data-index="${index}" type="number" step="0.1" value="${course.credit}"></td>
+          <td><input data-key="difficulty" data-index="${index}" type="number" step="0.1" value="${course.difficulty}"></td>
+          <td><input data-key="content" data-index="${index}" type="number" step="0.1" value="${course.content}"></td>
+          <td><input data-key="mastery" data-index="${index}" type="number" step="0.1" value="${course.mastery}"></td>
+          <td><button class="del" data-index="${index}" title="删除课程">×</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function syncCoursesFromInputs() {
+      document.querySelectorAll("#courseTable input").forEach(input => {
+        const index = Number(input.dataset.index);
+        const key = input.dataset.key;
+        courses[index][key] = key === "name" ? input.value.trim() : clampNumber(input.value, 0);
+      });
+    }
+
+    function calculateScore(course, hours, learningAbility) {
+      let initialScore = course.mastery * 10.0;
+      if (initialScore >= 100.0) return 100.0;
+      if (initialScore < 0.0) initialScore = 0.0;
+
+      let combinedDifficulty = Math.pow(course.difficulty, 1.0) * Math.pow(course.content, 1.0);
+      if (combinedDifficulty < 0.1) combinedDifficulty = 0.1;
+
+      const k = (BASE_LEARNING_RATE * learningAbility) / combinedDifficulty;
+      const scoreIncrease = (100.0 - initialScore) * (1.0 - Math.exp(-k * hours));
+      return Math.min(initialScore + scoreIncrease, 100.0);
+    }
+
+    function scoreToGpa(score) {
+      if (score >= 93) return 4.5;
+      if (score >= 85) return 4.0;
+      if (score >= 80) return 3.5;
+      if (score >= 75) return 3.0;
+      if (score >= 70) return 2.5;
+      if (score >= 65) return 2.0;
+      if (score >= 60) return 1.0;
+      return 0.0;
+    }
+
+    function getRank(score) {
+      if (score >= 93) return "A+";
+      if (score >= 85) return "A";
+      if (score >= 80) return "B+";
+      if (score >= 75) return "B";
+      if (score >= 70) return "C+";
+      if (score >= 65) return "C";
+      if (score >= 60) return "D";
+      return "F";
+    }
+
+    function dpAllocation(courseList, totalHour, learningAbility) {
+      const n = courseList.length;
+      const dp = Array.from({ length: n + 1 }, () => Array(totalHour + 1).fill(0));
+      const path = Array.from({ length: n + 1 }, () => Array(totalHour + 1).fill(0));
+
+      for (let i = 1; i <= n; i++) {
+        for (let j = 0; j <= totalHour; j++) {
+          for (let k = 0; k <= j; k++) {
+            const score = calculateScore(courseList[i - 1], k, learningAbility);
+            const val = dp[i - 1][j - k] + courseList[i - 1].credit * scoreToGpa(score);
+            if (val > dp[i][j]) {
+              dp[i][j] = val;
+              path[i][j] = k;
+            }
+          }
+        }
+      }
+
+      const alloc = Array(n).fill(0);
+      let rem = totalHour;
+      for (let i = n; i > 0; i--) {
+        alloc[i - 1] = path[i][rem];
+        rem -= alloc[i - 1];
+      }
+
+      const sumCredit = courseList.reduce((sum, c) => sum + c.credit, 0);
+      const courseResults = courseList.map((course, index) => {
+        const score = calculateScore(course, alloc[index], learningAbility);
+        return {
+          hours: alloc[index],
+          score: Number(score.toFixed(1)),
+          rank: getRank(score),
+          gpa: Number(scoreToGpa(score).toFixed(1))
+        };
+      });
+
+      return {
+        totalHours: totalHour,
+        sumCredit,
+        totalWeightGpa: dp[n][totalHour],
+        avgGpa: sumCredit > 0 ? dp[n][totalHour] / sumCredit : 0,
+        courseResults
+      };
+    }
+
+    function greedyAllocation(courseList, totalHour, learningAbility) {
+      const n = courseList.length;
+      const alloc = Array(n).fill(0);
+      let remaining = totalHour;
+
+      for (let i = 0; i < n && remaining > 0; i++) {
+        while (calculateScore(courseList[i], alloc[i], learningAbility) < 60 && remaining > 0) {
+          alloc[i]++;
+          remaining--;
+        }
+      }
+
+      while (remaining > 0) {
+        let bestCourse = -1;
+        let minHoursToAplus = Infinity;
+
+        for (let i = 0; i < n; i++) {
+          const currentScore = calculateScore(courseList[i], alloc[i], learningAbility);
+          if (currentScore >= 93) continue;
+
+          let hoursNeeded = 0;
+          let tempAlloc = alloc[i];
+          const guard = totalHour + 300;
+          while (calculateScore(courseList[i], tempAlloc, learningAbility) < 93 && hoursNeeded < guard) {
+            hoursNeeded++;
+            tempAlloc++;
+          }
+
+          if (hoursNeeded < minHoursToAplus) {
+            minHoursToAplus = hoursNeeded;
+            bestCourse = i;
+          }
+        }
+
+        if (bestCourse !== -1) {
+          alloc[bestCourse]++;
+        } else {
+          alloc[0]++;
+        }
+        remaining--;
+      }
+
+      const sumCredit = courseList.reduce((sum, c) => sum + c.credit, 0);
+      let totalGpa = 0;
+      const courseResults = courseList.map((course, index) => {
+        const score = calculateScore(course, alloc[index], learningAbility);
+        const gpa = scoreToGpa(score);
+        totalGpa += course.credit * gpa;
+        return {
+          hours: alloc[index],
+          score: Number(score.toFixed(1)),
+          rank: getRank(score),
+          gpa: Number(gpa.toFixed(1))
+        };
+      });
+
+      return {
+        totalHours: totalHour,
+        sumCredit,
+        totalWeightGpa: totalGpa,
+        avgGpa: sumCredit > 0 ? totalGpa / sumCredit : 0,
+        courseResults
+      };
+    }
+
+    function validate(courseList, totalHours, ability) {
+      if (courseList.length < 1 || courseList.length > MAX_COURSES) {
+        throw new Error(`课程数量必须在 1-${MAX_COURSES} 门之间`);
+      }
+      if (totalHours < 1 || totalHours > MAX_HOURS) {
+        throw new Error(`总复习时长必须在 1-${MAX_HOURS} 小时之间`);
+      }
+      if (ability < 0.1 || ability > 3.0) {
+        throw new Error("学习能力必须在 0.1-3.0 之间");
+      }
+      courseList.forEach((course, index) => {
+        if (!course.name) throw new Error(`第 ${index + 1} 门课程名称不能为空`);
+        if (course.credit <= 0) throw new Error(`${course.name} 的学分必须大于 0`);
+      });
+    }
+
+    function runAlgorithms() {
+      try {
+        syncCoursesFromInputs();
+        const totalHours = updateTotalHours();
+        const ability = clampNumber(abilityInput.value, 1.5);
+        const cleanCourses = courses.map(course => ({
+          name: course.name,
+          credit: clampNumber(course.credit),
+          difficulty: clampNumber(course.difficulty),
+          content: clampNumber(course.content),
+          mastery: clampNumber(course.mastery)
+        }));
+
+        validate(cleanCourses, totalHours, ability);
+
+        const dp = dpAllocation(cleanCourses, totalHours, ability);
+        const greedy = greedyAllocation(cleanCourses, totalHours, ability);
+        renderResults(cleanCourses, dp, greedy);
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function renderResults(courseList, dp, greedy) {
+      const gap = dp.avgGpa - greedy.avgGpa;
+      document.querySelector("#dpAvg").textContent = dp.avgGpa.toFixed(2);
+      document.querySelector("#greedyAvg").textContent = greedy.avgGpa.toFixed(2);
+      document.querySelector("#gap").textContent = gap >= 0 ? `+${gap.toFixed(2)}` : gap.toFixed(2);
+
+      resultBody.innerHTML = "";
+      courseList.forEach((course, index) => {
+        const dpRes = dp.courseResults[index];
+        const greedyRes = greedy.courseResults[index];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${course.name}</td>
+          <td>${course.credit.toFixed(1)}</td>
+          <td>${course.difficulty.toFixed(1)}</td>
+          <td>${course.content.toFixed(1)}</td>
+          <td>${course.mastery.toFixed(1)}</td>
+          <td class="blue"><b>${dpRes.hours}</b></td>
+          <td>${dpRes.score}</td>
+          <td><span class="badge">${dpRes.gpa}</span></td>
+          <td class="green"><b>${greedyRes.hours}</b></td>
+          <td>${greedyRes.score}</td>
+          <td><span class="badge" style="background:#f0fdf4;color:#16a34a">${greedyRes.gpa}</span></td>
+        `;
+        resultBody.appendChild(tr);
+      });
+    }
+
+    tbody.addEventListener("input", event => {
+      const input = event.target;
+      const index = Number(input.dataset.index);
+      const key = input.dataset.key;
+      if (!Number.isInteger(index) || !key) return;
+      courses[index][key] = key === "name" ? input.value : clampNumber(input.value, 0);
+    });
+
+    tbody.addEventListener("click", event => {
+      const button = event.target.closest(".del");
+      if (!button) return;
+      const index = Number(button.dataset.index);
+      courses.splice(index, 1);
+      renderCourses();
+    });
+
+    document.querySelector("#addBtn").addEventListener("click", () => {
+      if (courses.length >= MAX_COURSES) {
+        alert(`最多支持 ${MAX_COURSES} 门课程`);
+        return;
+      }
+      courses.push({ name: "新课程", credit: 3.0, difficulty: 5.0, content: 5.0, mastery: 6.0 });
+      renderCourses();
+    });
+
+    document.querySelector("#resetBtn").addEventListener("click", () => {
+      courses = structuredClone(defaultCourses);
+      daysInput.value = 20;
+      hpdInput.value = 4;
+      abilityInput.value = 1.5;
+      updateTotalHours();
+      renderCourses();
+      runAlgorithms();
+    });
+
+    document.querySelector("#runBtn").addEventListener("click", runAlgorithms);
+    daysInput.addEventListener("input", updateTotalHours);
+    hpdInput.addEventListener("input", updateTotalHours);
+
+    updateTotalHours();
+    renderCourses();
+    runAlgorithms();
+  </script>
+</body>
+</html>
